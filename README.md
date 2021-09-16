@@ -1,7 +1,7 @@
 # GreatRecession
 
 In this repository you will find my poster presented at the 7th International Symposium on 
-Resilience Research, the code I used (in R markdown format) and the R markdown html document. 
+Resilience Research, poster references, R Markdown code and HTML output.
 Data available upon request.
 Please visit the following sites to learn more about the California Families Project:
 
