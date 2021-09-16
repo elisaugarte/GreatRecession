@@ -1,1 +1,280 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(arsenal)
+library(scales)
+library(pander)
+library(foreign)
+library(magrittr) 
+library(dplyr)    
+library(tidyr)
+library(psych)
+library(gridExtra)
+library(ggplot2)
+library(corrr)
+library(corrplot)
+library(ggpubr)
+library(modelr)
+library(effectsize)
+library(glmpath)
+library(glmnet)
+library(MASS)
+library(ggcorrplot)
+library(broom)
+library(ggfortify)
+library(relaimpo)
+library(olsrr)
+library(parameters)
+library(BayesFactor)
+library(codebook)
+library(labelled)
+library(PerformanceAnalytics)
+library(Hmisc)
+library(lavaan)
+library(psych)
+library(jmv)
+library(car)
+#install these packages first
+library(Hmisc)
+library(MVN)
+library(mice)
+library(VIM)
+library(semTools)
+library(semPlot)
+
+setwd("C:\\Users\\eugarte\\Dropbox\\PhD\\Herd Lab\\Resilience to Economic Shock\\2021 Analyses")
+
+####Reading data set
+
+dat <- read.csv("ResilienceSymposiumData.csv")
+
+```
+
+### T-tests to explore cohort differences
+#### CFP has two consecutive cohorts, sampled 1 year apart. Cohort 2 was interviewed closer to the Great Recession.
+
+```{r ttest, echo=FALSE}
+
+dat$C00COHORT <- as.factor(dat$C00COHORT)
+
+t.test(dat$c05dep~dat$C00COHORT)
+boxplot(c05dep~C00COHORT, data=dat, notch=T,
+        col=(c("gold","darkgreen")),
+        main="T5 Dep (*)", xlab="Cohort")
+
+t.test(dat$c03dep~dat$C00COHORT)
+boxplot(c03dep~C00COHORT, data=dat, notch=TRUE,
+        col=(c("gold","darkgreen")),
+        main="T3 Dep", xlab="C00COHORT")
+
+
+t.test(dat$M01ECHD~dat$C00COHORT)
+boxplot(M01ECHD~C00COHORT, data=dat, notch=F,
+        col=(c("gold","darkgreen")),
+        main="Economic hardship (t)", xlab="C00COHORT")
+
+t.test(dat$m01masqad~dat$C00COHORT)
+boxplot(m01masqad~C00COHORT, data=dat, notch=F,
+        col=(c("gold","darkgreen")),
+        main="Mom depression T1", xlab="C00COHORT")
+
+t.test(dat$d01masqad~dat$C00COHORT)
+boxplot(d01masqad~C00COHORT, data=dat, notch=T,
+        col=(c("gold","darkgreen")),
+        main="Dad depression T1", xlab="C00COHORT")
+
+t.test(dat$c01meses~dat$C00COHORT)
+boxplot(c01meses~C00COHORT, data=dat, notch=T,
+        col=(c("gold","darkgreen")),
+        main="Child Economic stress T1 (***)", xlab="C00COHORT")
+
+t.test(dat$w03DCPosRel~dat$C00COHORT)
+boxplot(w03DCPosRel~C00COHORT, data=dat, notch=T,
+        col=(c("gold","darkgreen")),
+        main="Positive Relationship with father", xlab="C00COHORT")
+
+t.test(dat$w03MCPosRel~dat$C00COHORT)
+boxplot(w03MCPosRel~C00COHORT, data=dat, notch=T,
+        col=(c("gold","darkgreen")),
+        main="Positive Relationship with mother", xlab="C00COHORT")
+
+t.test(dat$m03FRou~dat$C00COHORT)
+boxplot(m03FRou~C00COHORT, data=dat, notch=T,
+        col=(c("gold","darkgreen")),
+        main="Routines", xlab="C00COHORT")
+
+```
+
+### Descriptives
+
+``` {r diag, echo = F}
+
+
+psych::describe(dat)
+
+#Mean centering for analysis
+dat$W5Age <- dat$W5Age - mean(dat$W5Age, na.rm=T)
+dat$sex <- dat$sex - mean(dat$sex, na.rm = T)
+dat$c03dep <- dat$c03dep - mean(dat$c03dep, na.rm = T)
+dat$m03FRou <- dat$m03FRou - mean(dat$m03FRou, na.rm = T)
+dat$w03MCPosRel <- dat$w03MCPosRel - mean(dat$w03MCPosRel, na.rm = T)
+dat$w03DCPosRel <- dat$w03DCPosRel - mean(dat$w03DCPosRel, na.rm = T)
+dat$cohort <- dat$cohort - mean(dat$cohort, na.rm=T)
+
+```
+
+
+
+### Latent change SEM 
+
+```{r model, warning=FALSE}
+poster <- '
+
+hardship_ch =~ 1*M03ECHD
+M03ECHD ~ 1*M01ECHD
+M03ECHD ~~ 0*M03ECHD 
+hardship_ch ~ M01ECHD 
+M01ECHD ~~ M01ECHD 
+hardship_ch ~~ hardship_ch
+hardship_ch ~ 1
+M01ECHD ~ 1
+
+
+mom_dep_ch =~ 1*m03masqad
+m03masqad ~ 1*m01masqad
+m03masqad ~~ 0*m03masqad 
+mom_dep_ch ~ m01masqad 
+m01masqad ~~ m01masqad 
+mom_dep_ch ~~ mom_dep_ch
+mom_dep_ch ~ 1
+m01masqad ~ 1
+
+
+#m01masqad ~~ d01masqad 
+m01masqad ~~ M01ECHD 
+
+dad_dep_ch =~ 1*d03masqad
+d03masqad ~ 1*d03masqad
+d03masqad ~~ 0*d03masqad 
+dad_dep_ch ~ d01masqad 
+d01masqad ~~ d01masqad 
+dad_dep_ch ~~ dad_dep_ch
+dad_dep_ch ~ 1
+d01masqad ~ 1
+
+#d01masqad ~~ M01ECHD
+
+ch_econstress_ch =~ 1*c03meses
+c03meses ~ 1*c03meses
+c03meses ~~ 0*c03meses 
+ch_econstress_ch ~ c01meses 
+c01meses ~~ c01meses + M01ECHD
+ch_econstress_ch ~~ ch_econstress_ch
+ch_econstress_ch ~ 1
+c01meses ~ 1
+
+
+mom_dep_ch ~~ dad_dep_ch + ch_econstress_ch
+ch_econstress_ch ~~ dad_dep_ch
+
+
+mom_dep_ch ~~ hardship_ch
+dad_dep_ch ~~ hardship_ch
+ch_econstress_ch ~~ hardship_ch
+
+#cohort ~~ dad_dep_ch 
+
+c01meses ~~ cohort
+
+c05dep ~ W5Age + sex + c03dep + cohort + mom_dep_ch + dad_dep_ch + hardship_ch + ch_econstress_ch + m03FRou + w03DCPosRel + w03MCPosRel
+
+m03FRou ~~ w03DCPosRel + w03MCPosRel
+w03DCPosRel ~~ w03MCPosRel
+
+m03FRou ~~ m03FRou
+w03DCPosRel ~~ w03DCPosRel
+w03MCPosRel ~~ w03MCPosRel
+
+#m03FRou ~1
+#w03DCPosRel ~1
+#w03MCPosRel ~1
+
+#c05fear ~ 1
+c05dep ~ 1
+#W5Age ~ 1
+#sex ~ 1
+#c03fear ~ 1
+#c03dep ~ 1
+#IncomeToNeeds5 ~ 1
+
+c05dep ~~ c05dep
+#c05fear ~~ c05fear
+W5Age ~~ W5Age
+sex ~~ sex
+c03dep ~~ c03dep 
+#c03fear ~~ c03fear
+#IncomeToNeeds5 ~~ IncomeToNeeds5
+sex	~~	c03dep 
+sex	~~	w03MCPosRel + w03DCPosRel
+
+cohort ~~ cohort         
+
+c03dep ~~ hardship_ch + mom_dep_ch + dad_dep_ch  + ch_econstress_ch +  m03FRou + w03DCPosRel + w03MCPosRel 
+
+m03FRou ~~ mom_dep_ch + hardship_ch + dad_dep_ch  + ch_econstress_ch 
+w03MCPosRel ~~ mom_dep_ch + hardship_ch + dad_dep_ch  + ch_econstress_ch  
+w03DCPosRel ~~ dad_dep_ch + hardship_ch + mom_dep_ch + ch_econstress_ch 
+
+'
+posterfit <- lavaan(poster, data=dat, model.type = "sem", estimator='ml',missing='fiml.x')#, se = "bootstrap", bootstrap = 5000)
+print(fitMeasures(posterfit, c("chisq", "df", "pvalue", "cfi", "tli", "rmsea"),
+                  output = "text"), add.h0 = TRUE)
+semPaths(posterfit, intercepts = F, what = "path", whatLabels = "no", layout = "tree", residuals = F,
+         nCharNodes = 7, nCharEdges = 5, fixedStyle = c("red",3), freeStyle = c("blue",5))
+
+
+```
+
+
+```{r pressure, echo=FALSE}
+
+summary(posterfit, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE) 
+parameterEstimates(posterfit, ci = T, boot.ci.type = "perc")
+
+```
+
+
+```{r plot2, include = F}
+lavaan::standardizedSolution(posterfit) %>% dplyr::filter(!is.na(pvalue)) %>% arrange(desc(pvalue)) %>% mutate_if("is.numeric","round",3) 
+
+pvalue_cutoff <- 0.05
+
+obj <- semPlot:::semPlotModel(posterfit)
+
+# save a copy of the original, so we can compare it later and be sure we removed only what we intended to remove
+original_Pars <- obj@Pars
+
+check_Pars <- obj@Pars %>% dplyr::filter(!(edge %in% c("int","<->") | lhs == rhs)) # this is the list of paramater to sift thru
+keep_Pars <- obj@Pars %>% dplyr::filter(edge %in% c("int","<->") | lhs == rhs) # this is the list of paramater to keep asis
+test_against <- lavaan::standardizedSolution(posterfit) %>% dplyr::filter(pvalue < pvalue_cutoff, rhs != lhs)
+test_against_rev <- test_against %>% rename(rhs2 = lhs,   # for some reason, the rhs and lhs are reversed in the standardizedSolution() output, for some of the values
+                                            lhs = rhs) %>% # I'll have to reverse it myself, and test against both orders
+  rename(rhs = rhs2)
+checked_Pars <-
+  check_Pars %>% semi_join(test_against, by = c("lhs", "rhs")) %>% bind_rows(
+    check_Pars %>% semi_join(test_against_rev, by = c("lhs", "rhs"))
+  )
+
+obj@Pars <- keep_Pars %>% bind_rows(checked_Pars)
+
+#let's verify by looking at the list of the edges we removed from the object
+anti_join(original_Pars,obj@Pars)
+```
+
+## Extra: Path model of results 
+``` {r plot3, echo=FALSE}
+semPlot::semPaths(obj, "std",fade = F, residuals = F, nCharNodes = 7, nCharEdges = 5, intercepts = F, exoCov = F)
+```
+
 
