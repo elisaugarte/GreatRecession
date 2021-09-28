@@ -217,7 +217,7 @@ w03MCPosRel ~~ mom_dep_ch + hardship_ch + dad_dep_ch  + ch_econstress_ch
 w03DCPosRel ~~ dad_dep_ch + hardship_ch + mom_dep_ch + ch_econstress_ch 
 
 '
-posterfit <- lavaan(poster, data=dat, model.type = "sem", estimator='ml',missing='fiml.x')#, se = "bootstrap", bootstrap = 5000)
+posterfit <- lavaan(poster, data=dat, model.type = "sem", estimator='ml',missing='fiml.x', se = "bootstrap", bootstrap = 5000)
 print(fitMeasures(posterfit, c("chisq", "df", "pvalue", "cfi", "tli", "rmsea"),
                   output = "text"), add.h0 = TRUE)
 semPaths(posterfit, intercepts = F, what = "path", whatLabels = "no", layout = "tree", residuals = F,
