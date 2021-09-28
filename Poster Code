@@ -150,8 +150,6 @@ mom_dep_ch ~~ mom_dep_ch
 mom_dep_ch ~ 1
 m01masqad ~ 1
 
-
-#m01masqad ~~ d01masqad 
 m01masqad ~~ M01ECHD 
 
 dad_dep_ch =~ 1*d03masqad
@@ -163,7 +161,6 @@ dad_dep_ch ~~ dad_dep_ch
 dad_dep_ch ~ 1
 d01masqad ~ 1
 
-#d01masqad ~~ M01ECHD
 
 ch_econstress_ch =~ 1*c03meses
 c03meses ~ 1*c03meses
@@ -183,8 +180,6 @@ mom_dep_ch ~~ hardship_ch
 dad_dep_ch ~~ hardship_ch
 ch_econstress_ch ~~ hardship_ch
 
-#cohort ~~ dad_dep_ch 
-
 c01meses ~~ cohort
 
 c05dep ~ W5Age + sex + c03dep + cohort + mom_dep_ch + dad_dep_ch + hardship_ch + ch_econstress_ch + m03FRou + w03DCPosRel + w03MCPosRel
@@ -200,21 +195,16 @@ w03MCPosRel ~~ w03MCPosRel
 #w03DCPosRel ~1
 #w03MCPosRel ~1
 
-#c05fear ~ 1
 c05dep ~ 1
 #W5Age ~ 1
 #sex ~ 1
-#c03fear ~ 1
 #c03dep ~ 1
-#IncomeToNeeds5 ~ 1
+
 
 c05dep ~~ c05dep
-#c05fear ~~ c05fear
 W5Age ~~ W5Age
 sex ~~ sex
 c03dep ~~ c03dep 
-#c03fear ~~ c03fear
-#IncomeToNeeds5 ~~ IncomeToNeeds5
 sex	~~	c03dep 
 sex	~~	w03MCPosRel + w03DCPosRel
 
